@@ -180,22 +180,33 @@ function App() {
     const fullName = String(formData.get("fullName") || "").trim();
     const email = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "");
+    const redirectTo = `${window.location.origin}/#create`;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/#create`,
+        emailRedirectTo: redirectTo,
       },
     });
 
-    if (error) return notify(error.message);
+    if (error && !/already|registered|exists/i.test(error.message)) return notify(error.message);
     setPendingVerification({ email, password });
     if (data.session) {
       notify("Аккаунт создан.");
       setView("create");
       return;
     }
+
+    const otp = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: redirectTo,
+      },
+    });
+    if (otp.error) return notify(otp.error.message);
+
     notify("Код подтверждения отправлен на почту.");
     setView("verify");
   }
@@ -209,11 +220,7 @@ function App() {
     const token = String(formData.get("code") || "").replace(/\s+/g, "");
     if (!email || !token) return notify("Введите email и код из письма.");
 
-    let result = await supabase.auth.verifyOtp({ email, token, type: "signup" });
-    if (result.error) {
-      result = await supabase.auth.verifyOtp({ email, token, type: "email" });
-    }
-
+    const result = await supabase.auth.verifyOtp({ email, token, type: "email" });
     if (result.error) return notify(result.error.message);
     notify("Почта подтверждена.");
     setView("create");
@@ -221,7 +228,13 @@ function App() {
 
   async function resendVerificationCode(email) {
     if (!supabase || !email) return notify("Укажите email для повторной отправки.");
-    const { error } = await supabase.auth.resend({ type: "signup", email });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/#create`,
+      },
+    });
     if (error) return notify(error.message);
     notify("Код отправлен повторно.");
   }

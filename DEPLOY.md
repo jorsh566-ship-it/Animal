@@ -55,10 +55,10 @@ supabase/schema.sql
 Authentication → Providers → Email
 ```
 
-Чтобы пользователь вводил код в интерфейсе, а не переходил по magic link, нужно поменять шаблон письма:
+В текущем интерфейсе после регистрации мы отправляем отдельный email OTP-код. Поэтому нужно поменять шаблон письма для Magic Link / OTP:
 
 ```text
-Authentication → Email Templates → Confirm signup
+Authentication → Email Templates → Magic Link
 ```
 
 В текст письма добавь токен:
@@ -74,6 +74,8 @@ Authentication → Email Templates → Confirm signup
 ```
 
 Если `{{ .Token }}` не добавить, пользователь не увидит код и не сможет подтвердить почту через поле в кабинете.
+
+Шаблон `Confirm signup` тоже можно оставить со ссылкой, но для поля кода в интерфейсе важен именно шаблон `Magic Link`, потому что повторная отправка кода и проверка идут через email OTP.
 
 ## 4. Redirect URLs
 
