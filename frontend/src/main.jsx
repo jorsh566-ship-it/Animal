@@ -32,6 +32,8 @@ const nav = [
   ["profile", "○", "Профиль"],
 ];
 
+const publicViews = ["landing", "login", "register", "verify", "examples"];
+const authViews = ["login", "register", "verify"];
 const yandexProvider = import.meta.env.VITE_YANDEX_PROVIDER || "custom:yandex";
 const vkProvider = import.meta.env.VITE_VK_PROVIDER || "custom:vk";
 
@@ -76,15 +78,21 @@ async function fileToOptimizedDataUrl(file) {
   });
 }
 
+function getInitialView() {
+  const hashView = window.location.hash.replace("#", "");
+  return hashView || "landing";
+}
+
 function App() {
   const [session, setSession] = useState(null);
-  const [view, setView] = useState("create");
+  const [view, setView] = useState(getInitialView);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
   const [currentOrder, setCurrentOrder] = useState(null);
   const [selectedAvatarId, setSelectedAvatarId] = useState(null);
   const [exampleCategory, setExampleCategory] = useState("Все");
+  const [pendingVerification, setPendingVerification] = useState({ email: "", password: "" });
   const [form, setForm] = useState({
     heroName: "Лиза",
     age: "7 лет",
@@ -97,11 +105,12 @@ function App() {
 
   const token = getToken(session);
   const signedIn = Boolean(session?.user);
+  const visibleView = signedIn || publicViews.includes(view) ? view : "login";
 
   function notify(message) {
     setToast(message);
     window.clearTimeout(notify.timer);
-    notify.timer = window.setTimeout(() => setToast(""), 2600);
+    notify.timer = window.setTimeout(() => setToast(""), 3000);
   }
 
   async function refreshOrders(nextToken = token) {
@@ -113,7 +122,6 @@ function App() {
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setLoading(false);
-      setView("login");
       return;
     }
 
@@ -122,6 +130,7 @@ function App() {
       if (data.session) {
         await syncProfile(data.session.access_token);
         await refreshOrders(data.session.access_token);
+        if (authViews.includes(view)) setView("create");
       }
       setLoading(false);
     });
@@ -134,7 +143,7 @@ function App() {
         setView("create");
       } else {
         setOrders([]);
-        setView("login");
+        setView("landing");
       }
     });
 
@@ -151,39 +160,77 @@ function App() {
     [exampleCategory]
   );
 
-  async function signInWithEmail(event, mode) {
+  async function loginWithPassword(event) {
     event.preventDefault();
     if (!supabase) return notify("Заполните VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY.");
-    const formData = new FormData(event.currentTarget);
-    const email = formData.get("email");
-    const password = formData.get("password");
-    const redirectTo = `${window.location.origin}/cabinet`;
-    const result =
-      mode === "signup"
-        ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
-        : await supabase.auth.signInWithPassword({ email, password });
 
-    if (result.error) return notify(result.error.message);
-    notify(mode === "signup" ? "Письмо подтверждения отправлено." : "Вы вошли в кабинет.");
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return notify(error.message);
+    notify("Вы вошли в кабинет.");
   }
 
-  async function signInWithMagicLink(event) {
+  async function startRegistration(event) {
+    event.preventDefault();
+    if (!supabase) return notify("Заполните env Supabase во frontend.");
+
+    const formData = new FormData(event.currentTarget);
+    const fullName = String(formData.get("fullName") || "").trim();
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/#create`,
+      },
+    });
+
+    if (error) return notify(error.message);
+    setPendingVerification({ email, password });
+    if (data.session) {
+      notify("Аккаунт создан.");
+      setView("create");
+      return;
+    }
+    notify("Код подтверждения отправлен на почту.");
+    setView("verify");
+  }
+
+  async function verifyEmailCode(event) {
     event.preventDefault();
     if (!supabase) return notify("Заполните env Supabase.");
-    const email = new FormData(event.currentTarget).get("email");
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/cabinet` },
-    });
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") || pendingVerification.email || "").trim();
+    const token = String(formData.get("code") || "").replace(/\s+/g, "");
+    if (!email || !token) return notify("Введите email и код из письма.");
+
+    let result = await supabase.auth.verifyOtp({ email, token, type: "signup" });
+    if (result.error) {
+      result = await supabase.auth.verifyOtp({ email, token, type: "email" });
+    }
+
+    if (result.error) return notify(result.error.message);
+    notify("Почта подтверждена.");
+    setView("create");
+  }
+
+  async function resendVerificationCode(email) {
+    if (!supabase || !email) return notify("Укажите email для повторной отправки.");
+    const { error } = await supabase.auth.resend({ type: "signup", email });
     if (error) return notify(error.message);
-    notify("Ссылка для входа отправлена на почту.");
+    notify("Код отправлен повторно.");
   }
 
   async function signInWithProvider(provider) {
     if (!supabase) return notify("Заполните env Supabase.");
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/cabinet` },
+      options: { redirectTo: `${window.location.origin}/#create` },
     });
     if (error) notify(error.message);
   }
@@ -247,51 +294,82 @@ function App() {
   }
 
   if (loading) {
-    return <Shell view="generating"><Loader title="Загружаем кабинет" text="Проверяем сессию" /></Shell>;
+    return (
+      <Shell view="generating">
+        <Loader title="Загружаем кабинет" text="Проверяем сессию" />
+      </Shell>
+    );
   }
 
   return (
-    <Shell view={view} setView={setView} signedIn={signedIn} user={session?.user}>
-      {view === "login" && (
-        <AuthScreen
-          onEmail={signInWithEmail}
-          onMagic={signInWithMagicLink}
+    <Shell view={visibleView} setView={setView} signedIn={signedIn} user={session?.user}>
+      {visibleView === "landing" && <LandingScreen setView={setView} />}
+      {visibleView === "login" && (
+        <LoginScreen
+          onLogin={loginWithPassword}
           onOAuth={signInWithProvider}
+          setView={setView}
           configured={isSupabaseConfigured}
         />
       )}
-      {view === "create" && signedIn && (
+      {visibleView === "register" && (
+        <RegisterScreen
+          onRegister={startRegistration}
+          onOAuth={signInWithProvider}
+          setView={setView}
+          configured={isSupabaseConfigured}
+        />
+      )}
+      {visibleView === "verify" && (
+        <VerifyEmailScreen
+          pending={pendingVerification}
+          onVerify={verifyEmailCode}
+          onResend={resendVerificationCode}
+          setPending={setPendingVerification}
+          setView={setView}
+        />
+      )}
+      {visibleView === "create" && signedIn && (
         <CreateScreen form={form} setForm={setForm} onPhoto={handlePhoto} onSubmit={createAndGenerate} />
       )}
-      {view === "generating" && <Loader title="Создаем 3 образа героя" text="Готовим варианты персонажа" />}
-      {view === "avatars" && signedIn && (
+      {visibleView === "generating" && (
+        <Loader title="Создаем 3 образа героя" text="Готовим варианты персонажа" />
+      )}
+      {visibleView === "avatars" && signedIn && (
         <AvatarScreen order={currentOrder} selectedId={selectedAvatarId} setSelectedId={setSelectedAvatarId} onContinue={continueWithAvatar} />
       )}
-      {view === "payment" && signedIn && <PaymentScreen order={currentOrder} selectedAvatarId={selectedAvatarId} onPay={markPaymentPending} />}
-      {view === "works" && signedIn && <WorksScreen orders={orders} setView={setView} setCurrentOrder={setCurrentOrder} />}
-      {view === "examples" && (
-        <ExamplesScreen category={exampleCategory} setCategory={setExampleCategory} items={filteredExamples} setForm={setForm} setView={setView} />
+      {visibleView === "payment" && signedIn && (
+        <PaymentScreen order={currentOrder} selectedAvatarId={selectedAvatarId} onPay={markPaymentPending} />
       )}
-      {view === "gift" && signedIn && <GiftScreen notify={notify} />}
-      {view === "profile" && signedIn && <ProfileScreen user={session.user} orders={orders} onLogout={() => supabase.auth.signOut()} />}
-      {!signedIn && view !== "login" && view !== "examples" && <AuthScreen onEmail={signInWithEmail} onMagic={signInWithMagicLink} onOAuth={signInWithProvider} configured={isSupabaseConfigured} />}
+      {visibleView === "works" && signedIn && (
+        <WorksScreen orders={orders} setView={setView} setCurrentOrder={setCurrentOrder} />
+      )}
+      {visibleView === "examples" && (
+        <ExamplesScreen category={exampleCategory} setCategory={setExampleCategory} items={filteredExamples} setForm={setForm} setView={setView} signedIn={signedIn} />
+      )}
+      {visibleView === "gift" && signedIn && <GiftScreen notify={notify} />}
+      {visibleView === "profile" && signedIn && (
+        <ProfileScreen user={session.user} orders={orders} onLogout={() => supabase.auth.signOut()} />
+      )}
       {toast && <div className="toast">{toast}</div>}
     </Shell>
   );
 }
 
 function Shell({ children, view, setView, signedIn, user }) {
-  const showNav = signedIn && !["login", "generating"].includes(view);
+  const showNav = signedIn && !["landing", "login", "register", "verify", "generating"].includes(view);
+  const publicScreen = ["landing", "login", "register", "verify"].includes(view);
+
   return (
     <main className="app-shell">
-      {signedIn && view !== "generating" && (
+      {signedIn && !publicScreen && view !== "generating" && (
         <header className="app-bar">
           <button className="app-back" type="button" onClick={() => setView?.("create")}>←</button>
           <div><span>Личный кабинет</span><strong>Мультфильмы по фото</strong></div>
           <button className="profile-dot" type="button" onClick={() => setView?.("profile")}>{(user?.email || "Л")[0].toUpperCase()}</button>
         </header>
       )}
-      <section className={`screen is-active ${view === "login" ? "auth-screen" : ""} ${view === "generating" ? "center-screen" : ""}`}>{children}</section>
+      <section className={`screen is-active ${publicScreen ? "auth-screen" : ""} ${view === "generating" ? "center-screen" : ""}`}>{children}</section>
       {showNav && (
         <nav className="bottom-nav">
           {nav.map(([id, icon, label]) => (
@@ -305,36 +383,146 @@ function Shell({ children, view, setView, signedIn, user }) {
   );
 }
 
-function AuthScreen({ onEmail, onMagic, onOAuth, configured }) {
+function LandingScreen({ setView }) {
   return (
     <>
-      <div className="auth-hero">
-        <span className="soft-kicker">Вход</span>
-        <h1>Создайте мультфильм по фото</h1>
-        <p>Войдите, чтобы сохранить черновики, выбранных героев и готовые мультфильмы.</p>
+      <div className="public-hero">
+        <span className="soft-kicker">Ваша история в мультфильме</span>
+        <h1>Мультфильм с вами в главной роли</h1>
+        <p>Загрузите фото, бесплатно получите 3 мультяшных образа героя и оплачивайте только после выбора.</p>
       </div>
-      {!configured && <div className="trust-note"><h2>Нужны env</h2><p>Заполните VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY в Vercel или локальном .env.</p></div>}
-      <form className="panel auth-form" onSubmit={(event) => onEmail(event, "signin")}>
+      <div className="landing-actions">
+        <button className="primary-btn" type="button" onClick={() => setView("register")}>Зарегистрироваться</button>
+        <button className="ghost-btn" type="button" onClick={() => setView("login")}>Войти</button>
+      </div>
+      <div className="landing-preview">
+        {examples.slice(0, 3).map((item) => (
+          <article key={item.title}>
+            <img src={item.src} alt="" />
+            <span>{item.category}</span>
+          </article>
+        ))}
+      </div>
+      <div className="landing-feature-list panel">
+        <div><strong>3 образа бесплатно</strong><span>Сначала выбираете героя, потом оплачиваете фильм.</span></div>
+        <div><strong>Без подписок</strong><span>Оплата только за конкретный мультфильм.</span></div>
+        <div><strong>Фото защищены</strong><span>Используются только для вашего заказа.</span></div>
+      </div>
+      <button className="secondary-link" type="button" onClick={() => setView("examples")}>Смотреть примеры →</button>
+    </>
+  );
+}
+
+function LoginScreen({ onLogin, onOAuth, setView, configured }) {
+  return (
+    <>
+      <div className="public-hero auth-copy">
+        <span className="soft-kicker">Вход</span>
+        <h1>Войдите в кабинет</h1>
+        <p>Продолжите создание мультфильма, выбор героя или оплату заказа.</p>
+      </div>
+      {!configured && <EnvWarning />}
+      <form className="panel auth-form" onSubmit={onLogin}>
         <label className="field"><span>Email</span><input name="email" type="email" required placeholder="you@example.com" /></label>
-        <label className="field"><span>Пароль</span><input name="password" type="password" minLength="6" required placeholder="Минимум 6 символов" /></label>
+        <PasswordInput name="password" label="Пароль" placeholder="Ваш пароль" />
         <button className="primary-btn" type="submit">Войти</button>
-        <button
-          className="ghost-btn"
-          type="button"
-          onClick={(event) => onEmail({ preventDefault() {}, currentTarget: event.currentTarget.form }, "signup")}
-        >
-          Зарегистрироваться
-        </button>
       </form>
-      <form className="panel auth-form" onSubmit={onMagic}>
-        <label className="field"><span>Войти по ссылке</span><input name="email" type="email" required placeholder="you@example.com" /></label>
-        <button className="primary-btn" type="submit">Отправить письмо подтверждения</button>
-      </form>
-      <div className="auth-social">
-        <button type="button" onClick={() => onOAuth(yandexProvider)}>Войти через Яндекс ID</button>
-        <button type="button" onClick={() => onOAuth(vkProvider)}>Войти через VK</button>
+      <SocialButtons onOAuth={onOAuth} />
+      <div className="auth-switch">
+        <button type="button" onClick={() => setView("register")}>Создать аккаунт</button>
+        <button type="button" onClick={() => setView("landing")}>На главную</button>
       </div>
     </>
+  );
+}
+
+function RegisterScreen({ onRegister, onOAuth, setView, configured }) {
+  return (
+    <>
+      <div className="public-hero auth-copy">
+        <span className="soft-kicker">Регистрация</span>
+        <h1>Создайте аккаунт</h1>
+        <p>После регистрации мы отправим код на почту. Введите его на следующем экране.</p>
+      </div>
+      {!configured && <EnvWarning />}
+      <form className="panel auth-form" onSubmit={onRegister}>
+        <label className="field"><span>Имя</span><input name="fullName" placeholder="Как к вам обращаться" /></label>
+        <label className="field"><span>Email</span><input name="email" type="email" required placeholder="you@example.com" /></label>
+        <PasswordInput name="password" label="Пароль" placeholder="Минимум 6 символов" minLength={6} />
+        <button className="primary-btn" type="submit">Получить код на почту</button>
+      </form>
+      <SocialButtons onOAuth={onOAuth} />
+      <div className="auth-switch">
+        <button type="button" onClick={() => setView("login")}>Уже есть аккаунт</button>
+        <button type="button" onClick={() => setView("landing")}>На главную</button>
+      </div>
+    </>
+  );
+}
+
+function VerifyEmailScreen({ pending, onVerify, onResend, setPending, setView }) {
+  return (
+    <>
+      <div className="public-hero auth-copy">
+        <span className="soft-kicker">Подтверждение</span>
+        <h1>Введите код из письма</h1>
+        <p>Мы отправили код на email. После подтверждения откроется личный кабинет.</p>
+      </div>
+      <form className="panel auth-form" onSubmit={onVerify}>
+        <label className="field">
+          <span>Email</span>
+          <input
+            name="email"
+            type="email"
+            required
+            value={pending.email}
+            onChange={(event) => setPending((prev) => ({ ...prev, email: event.target.value }))}
+            placeholder="you@example.com"
+          />
+        </label>
+        <label className="field">
+          <span>Код подтверждения</span>
+          <input className="code-input" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={8} required placeholder="000000" />
+        </label>
+        <button className="primary-btn" type="submit">Подтвердить почту</button>
+        <button className="ghost-btn is-light" type="button" onClick={() => onResend(pending.email)}>Отправить код еще раз</button>
+      </form>
+      <div className="auth-switch">
+        <button type="button" onClick={() => setView("register")}>Назад к регистрации</button>
+        <button type="button" onClick={() => setView("login")}>Войти</button>
+      </div>
+    </>
+  );
+}
+
+function PasswordInput({ name, label, placeholder, minLength }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <div className="password-wrap">
+        <input name={name} type={visible ? "text" : "password"} minLength={minLength} required placeholder={placeholder} />
+        <button type="button" onClick={() => setVisible((value) => !value)}>{visible ? "Скрыть" : "Показать"}</button>
+      </div>
+    </label>
+  );
+}
+
+function SocialButtons({ onOAuth }) {
+  return (
+    <div className="auth-social">
+      <button type="button" onClick={() => onOAuth(yandexProvider)}>Войти через Яндекс ID</button>
+      <button type="button" onClick={() => onOAuth(vkProvider)}>Войти через VK</button>
+    </div>
+  );
+}
+
+function EnvWarning() {
+  return (
+    <div className="trust-note">
+      <h2>Нужны env</h2>
+      <p>Заполните VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY во frontend-переменных Railway или Vercel.</p>
+    </div>
   );
 }
 
@@ -423,13 +611,13 @@ function WorksScreen({ orders, setView, setCurrentOrder }) {
   );
 }
 
-function ExamplesScreen({ category, setCategory, items, setForm, setView }) {
+function ExamplesScreen({ category, setCategory, items, setForm, setView, signedIn }) {
   const categories = ["Все", "Для ребенка", "История любви", "День рождения", "Свадьба"];
   return (
     <>
       <Head kicker="Примеры" title="Готовые мультфильмы" text="Выберите категорию и создайте похожий мультфильм." />
       <div className="category-row">{categories.map((item) => <button className={category === item ? "is-active" : ""} key={item} type="button" onClick={() => setCategory(item)}>{item}</button>)}</div>
-      <div className="example-list">{items.map((item) => <article className="example-card" key={item.title}><img src={item.src} alt={item.title} /><div><span>{item.category}</span><h2>{item.title}</h2><button type="button" onClick={() => { setForm((prev) => ({ ...prev, occasion: item.category, price: item.price })); setView("create"); }}>Создать похожий</button></div></article>)}</div>
+      <div className="example-list">{items.map((item) => <article className="example-card" key={item.title}><img src={item.src} alt={item.title} /><div><span>{item.category}</span><h2>{item.title}</h2><button type="button" onClick={() => { setForm((prev) => ({ ...prev, occasion: item.category, price: item.price })); setView(signedIn ? "create" : "register"); }}>Создать похожий</button></div></article>)}</div>
     </>
   );
 }

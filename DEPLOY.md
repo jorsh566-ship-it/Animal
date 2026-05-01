@@ -1,64 +1,81 @@
 # Деплой проекта Animal Movies
 
-Это инструкция для запуска новой версии с полноценным личным кабинетом:
+Проект состоит из трех частей:
 
-- frontend: Vercel;
-- backend API: Railway;
-- авторизация, база и файлы: Supabase;
-- генерация образов: OpenRouter через Railway backend.
+- `frontend` — React/Vite интерфейс кабинета;
+- `backend` — Railway API, где лежат секреты и вызов OpenRouter;
+- Supabase — Auth, база данных и Storage.
 
-Важно: Supabase сейчас не настроен автоматически. В проекте подготовлен файл `supabase/schema.sql`, который нужно будет вручную запустить в SQL Editor после создания Supabase-проекта.
+OpenRouter-ключ нельзя класть во frontend. Он должен быть только в Railway backend.
 
-## 1. Создать проект Supabase
+## 1. Supabase
 
-1. Зайди на https://supabase.com/.
-2. Создай новый проект.
-3. После создания открой:
-   - Project Settings → API;
-   - скопируй `Project URL`;
-   - скопируй `anon public key`;
-   - скопируй `service_role key`.
+Создай проект на https://supabase.com/ и открой:
 
-`anon public key` пойдет во frontend на Vercel.  
-`service_role key` пойдет только в backend на Railway. Его нельзя класть во frontend.
+```text
+Project Settings → API
+```
 
-## 2. Запустить SQL в Supabase
+Скопируй:
 
-1. В Supabase открой SQL Editor.
-2. Открой локальный файл:
+- `Project URL`;
+- `anon public key`;
+- `service_role key`.
+
+`anon public key` идет во frontend.  
+`service_role key` идет только в backend.
+
+## 2. SQL-схема
+
+Открой в Supabase:
+
+```text
+SQL Editor
+```
+
+Скопируй целиком файл:
 
 ```text
 supabase/schema.sql
 ```
 
-3. Скопируй весь SQL из файла.
-4. Вставь в SQL Editor.
-5. Нажми Run.
+Важно: вставляй и запускай весь файл сразу, а не отдельный кусок. Иначе можно получить ошибку около `new.updated_at`.
 
-Этот SQL создаст:
+Файл создает:
 
-- таблицу `profiles`;
-- таблицу `orders`;
-- таблицу `avatars`;
-- приватный bucket `source-photos`;
-- приватный bucket `generated-avatars`;
-- RLS-политики, чтобы пользователь видел только свои заказы и файлы.
+- таблицы `profiles`, `orders`, `avatars`;
+- buckets `source-photos`, `generated-avatars`;
+- RLS-политики для доступа только к своим данным.
 
-## 3. Настроить email-регистрацию
+## 3. Подтверждение email по коду
 
-В Supabase открой:
+Включи email provider:
 
 ```text
 Authentication → Providers → Email
 ```
 
-Включи email provider.
+Чтобы пользователь вводил код в интерфейсе, а не переходил по magic link, нужно поменять шаблон письма:
 
-Подтверждение почты работает не как “код ввести в поле”, а как письмо со ссылкой. Пользователь нажимает ссылку из письма и возвращается в кабинет.
+```text
+Authentication → Email Templates → Confirm signup
+```
 
-Если нужен именно код из письма, это отдельная логика, ее можно добавить позже.
+В текст письма добавь токен:
 
-## 4. Настроить Redirect URLs в Supabase
+```text
+Ваш код подтверждения: {{ .Token }}
+```
+
+Можно оставить ссылку как запасной вариант, но код должен быть в письме обязательно:
+
+```text
+{{ .ConfirmationURL }}
+```
+
+Если `{{ .Token }}` не добавить, пользователь не увидит код и не сможет подтвердить почту через поле в кабинете.
+
+## 4. Redirect URLs
 
 Открой:
 
@@ -66,52 +83,45 @@ Authentication → Providers → Email
 Authentication → URL Configuration
 ```
 
-Добавь:
+Добавь frontend-домены:
 
 ```text
-http://localhost:5173/cabinet
-https://ТВОЙ-ДОМЕН-НА-VERCEL/cabinet
+http://localhost:5173
+https://ТВОЙ-FRONTEND-ДОМЕН
 ```
 
-Когда подключишь свой домен, добавишь еще:
+После подключения продуктового домена добавь и его:
 
 ```text
-https://ТВОЙ-ПРОДУКТОВЫЙ-ДОМЕН/cabinet
+https://ТВОЙ-ПРОДУКТОВЫЙ-ДОМЕН
 ```
 
-## 5. Настроить Яндекс ID и VK
+## 5. Яндекс ID и VK
 
-В Supabase Яндекс и VK не идут как обычные встроенные кнопки. Их нужно подключить как custom OAuth/OIDC providers.
+Яндекс и VK нужно подключать в Supabase как custom OAuth/OIDC providers.
 
-В Supabase нужно создать два custom provider:
-
-```text
-custom:yandex
-custom:vk
-```
-
-Потом в них вставить client id и client secret из кабинетов Яндекса и VK.
-
-Во frontend уже заложены такие имена:
+Имена провайдеров, которые ожидает frontend:
 
 ```env
 VITE_YANDEX_PROVIDER=custom:yandex
 VITE_VK_PROVIDER=custom:vk
 ```
 
-## 6. Деплой backend на Railway
+В Supabase нужно создать custom providers с такими же именами и вставить туда client id / client secret из кабинетов Яндекса и VK.
 
-На Railway нужно деплоить папку:
+## 6. Railway backend
+
+Backend service должен смотреть на папку:
 
 ```text
 backend
 ```
 
-Переменные окружения Railway:
+Переменные Railway для backend:
 
 ```env
 PORT=8080
-APP_ORIGIN=https://ТВОЙ-ДОМЕН-НА-VERCEL,http://localhost:5173
+APP_ORIGIN=https://ТВОЙ-FRONTEND-ДОМЕН,http://localhost:5173
 SUPABASE_URL=https://ТВОЙ-ПРОЕКТ.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=ТВОЙ_SUPABASE_SERVICE_ROLE_KEY
 OPENROUTER_API_KEY=ТВОЙ_OPENROUTER_KEY
@@ -121,30 +131,30 @@ OPENROUTER_MODEL=google/gemini-3.1-flash-image-preview
 Проверка backend:
 
 ```text
-https://ТВОЙ-RAILWAY-ДОМЕН/health
+https://ТВОЙ-RAILWAY-BACKEND-ДОМЕН/health
 ```
 
 Должен вернуться JSON с `ok: true`.
 
-## 7. Деплой frontend на Vercel
+## 7. Railway или Vercel frontend
 
-На Vercel нужно деплоить папку:
+Frontend service должен смотреть на папку:
 
 ```text
 frontend
 ```
 
-Переменные окружения Vercel:
+Переменные для frontend:
 
 ```env
 VITE_SUPABASE_URL=https://ТВОЙ-ПРОЕКТ.supabase.co
 VITE_SUPABASE_ANON_KEY=ТВОЙ_SUPABASE_ANON_KEY
-VITE_API_URL=https://ТВОЙ-RAILWAY-ДОМЕН
+VITE_API_URL=https://ТВОЙ-RAILWAY-BACKEND-ДОМЕН
 VITE_YANDEX_PROVIDER=custom:yandex
 VITE_VK_PROVIDER=custom:vk
 ```
 
-После изменения env на Vercel нужно сделать redeploy.
+После изменения env всегда делай redeploy frontend.
 
 ## 8. Локальный запуск
 
@@ -173,41 +183,12 @@ frontend: http://localhost:5173
 backend: http://localhost:8080
 ```
 
-## 9. GitHub
+## 9. Текущая модель генерации
 
-Если GitHub CLI не установлен, проще так:
-
-1. Создай новый репозиторий на https://github.com/.
-2. Не добавляй README, `.gitignore` и license, потому что они уже есть локально.
-3. GitHub покажет команды. Нужно выполнить примерно:
-
-```bash
-git remote add origin https://github.com/ТВОЙ-ЛОГИН/ТВОЙ-РЕПОЗИТОРИЙ.git
-git branch -M main
-git push -u origin main
-```
-
-Если Git попросит логин и пароль, обычный пароль GitHub уже не принимает. Нужен Personal Access Token.
-
-Альтернатива проще: установить GitHub Desktop и залогиниться через браузер.
-
-## 10. Что уже сделано в коде
-
-- Подготовлен React frontend.
-- Подготовлен Railway backend.
-- Подготовлена Supabase SQL-схема.
-- OpenRouter key больше не должен быть во frontend.
-- Генерация 3 образов идет через backend.
-- Модель оставлена:
+Сейчас используется:
 
 ```text
 google/gemini-3.1-flash-image-preview
 ```
 
-## 11. Что еще не подключено
-
-- Реальный Supabase-проект еще нужно создать вручную.
-- SQL еще нужно выполнить в Supabase SQL Editor.
-- Яндекс ID и VK еще нужно создать в кабинетах Яндекса/VK и подключить в Supabase.
-- CloudPayments пока не подключен.
-- GitHub remote еще не добавлен, потому что репозиторий на GitHub нужно создать или дать мне ссылку.
+Она задается переменной `OPENROUTER_MODEL` в Railway backend.
