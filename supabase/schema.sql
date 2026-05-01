@@ -1,3 +1,7 @@
+-- Animal Movies Supabase schema.
+-- Run this file from the first line to the last line in Supabase SQL Editor.
+-- Do not select and run only the middle of the file: trigger functions need their full block.
+
 create extension if not exists "pgcrypto";
 
 create table if not exists public.profiles (
@@ -73,8 +77,8 @@ create policy "Profiles are visible by owner"
 on public.profiles for select
 using (auth.uid() = id);
 
-drop policy if exists "Profiles are upserted by owner" on public.profiles;
-create policy "Profiles are upserted by owner"
+drop policy if exists "Profiles are inserted by owner" on public.profiles;
+create policy "Profiles are inserted by owner"
 on public.profiles for insert
 with check (auth.uid() = id);
 
@@ -126,7 +130,24 @@ create policy "Users can upload own source photos"
 on storage.objects for insert
 with check (bucket_id = 'source-photos' and auth.uid()::text = (storage.foldername(name))[1]);
 
+drop policy if exists "Users can update own source photos" on storage.objects;
+create policy "Users can update own source photos"
+on storage.objects for update
+using (bucket_id = 'source-photos' and auth.uid()::text = (storage.foldername(name))[1])
+with check (bucket_id = 'source-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+
 drop policy if exists "Users can read own generated avatars" on storage.objects;
 create policy "Users can read own generated avatars"
 on storage.objects for select
 using (bucket_id = 'generated-avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "Users can upload own generated avatars" on storage.objects;
+create policy "Users can upload own generated avatars"
+on storage.objects for insert
+with check (bucket_id = 'generated-avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "Users can update own generated avatars" on storage.objects;
+create policy "Users can update own generated avatars"
+on storage.objects for update
+using (bucket_id = 'generated-avatars' and auth.uid()::text = (storage.foldername(name))[1])
+with check (bucket_id = 'generated-avatars' and auth.uid()::text = (storage.foldername(name))[1]);
