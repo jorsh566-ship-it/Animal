@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Личный кабинет мультфильмов</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="cabinet.css?v=app-3" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-bar">
+        <a class="app-back" href="index.html">←</a>
+        <div>
+          <span>Личный кабинет</span>
+          <strong>Мультфильмы по фото</strong>
+        </div>
+        <button class="profile-dot" type="button" data-route="profile">Л</button>
+      </header>
+
+      <section class="screen auth-screen is-active" id="login" data-view="login" aria-labelledby="login-title">
+        <div class="auth-hero">
+          <span class="soft-kicker">Вход</span>
+          <h1 id="login-title">Создайте мультфильм по фото</h1>
+          <p>Войдите, чтобы сохранить черновики, выбранных героев и готовые мультфильмы.</p>
+        </div>
+
+        <form class="panel auth-form" data-login-form>
+          <label class="field">
+            <span>Телефон или email</span>
+            <input name="login" type="text" value="+7 999 123-45-67" autocomplete="tel" />
+          </label>
+          <label class="field">
+            <span>Код из сообщения</span>
+            <input name="code" type="text" value="1234" inputmode="numeric" />
+          </label>
+          <button class="primary-btn" type="submit">Войти и продолжить <span>→</span></button>
+          <p class="form-note">Для прототипа код уже введен. После входа откроется окно создания.</p>
+        </form>
+      </section>
+
+      <section class="screen" id="create" data-view="create" aria-labelledby="create-title">
+        <div class="compact-head">
+          <span>Создать</span>
+          <h1 id="create-title">Новый мультфильм</h1>
+          <p>Сначала бесплатно подготовим 3 образа героя. Оплата появится только после выбора.</p>
+        </div>
+
+        <form class="create-form" data-create-form>
+          <label class="upload-card" data-upload-card>
+            <input name="photo" type="file" accept="image/*" data-photo-input />
+            <img data-photo-preview alt="" />
+            <span class="upload-icon">+</span>
+            <strong data-upload-title>Загрузите фото героя</strong>
+            <small data-upload-text>Лучше подойдет четкое фото лица при хорошем освещении.</small>
+          </label>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>Имя героя</span>
+              <input name="heroName" type="text" value="Лиза" />
+            </label>
+            <label class="field">
+              <span>Возраст</span>
+              <input name="age" type="text" value="7 лет" />
+            </label>
+          </div>
+
+          <div class="form-block">
+            <h2>Повод</h2>
+            <div class="chip-grid" data-choice-group="occasion">
+              <button class="chip is-active" type="button" data-value="Для ребенка" data-price="1490">Для ребенка</button>
+              <button class="chip" type="button" data-value="История любви" data-price="1990">История любви</button>
+              <button class="chip" type="button" data-value="День рождения" data-price="1490">День рождения</button>
+              <button class="chip" type="button" data-value="Свадьба" data-price="1990">Свадьба</button>
+            </div>
+          </div>
+
+          <div class="form-block">
+            <h2>Сюжет</h2>
+            <div class="story-list" data-choice-group="story">
+              <button class="story-card is-active" type="button" data-value="Волшебное приключение">
+                <strong>Волшебное приключение</strong>
+                <span>Герой попадает в сказочный мир и находит чудо.</span>
+              </button>
+              <button class="story-card" type="button" data-value="Теплая история">
+                <strong>Теплая история</strong>
+                <span>Спокойный мультфильм про семью, любовь и заботу.</span>
+              </button>
+              <button class="story-card" type="button" data-value="Праздничный сюрприз">
+                <strong>Праздничный сюрприз</strong>
+                <span>Поздравление с подарками и финальным вау-моментом.</span>
+              </button>
+            </div>
+          </div>
+
+          <button class="primary-btn sticky-btn" type="submit">Создать 3 образа бесплатно</button>
+          <p class="trust-line">Оплата только после выбора образа.</p>
+        </form>
+      </section>
+
+      <section class="screen center-screen" id="generating" data-view="generating" aria-live="polite">
+        <div class="loader-card panel">
+          <div class="magic-loader"></div>
+          <h1>Создаем 3 образа героя</h1>
+          <p data-loader-step>Анализируем фото</p>
+          <div class="loader-lines">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="avatars" data-view="avatars" aria-labelledby="avatars-title">
+        <div class="compact-head">
+          <span>Образы готовы</span>
+          <h1 id="avatars-title">Выберите героя для мультфильма</h1>
+          <p>Мы бесплатно подготовили 3 варианта. Нажмите на карточку, чтобы выбрать образ.</p>
+        </div>
+
+        <div class="avatar-list" data-avatar-list>
+          <button class="avatar-card is-selected" type="button" data-avatar="0">
+            <img src="ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2023_16_34.png" alt="Сказочный образ героя" />
+            <div>
+              <span>Выбран</span>
+              <h2>Сказочный</h2>
+              <p>Мягкий стиль с теплым светом и крупными эмоциями.</p>
+            </div>
+            <b aria-hidden="true">✓</b>
+          </button>
+          <button class="avatar-card" type="button" data-avatar="1">
+            <img src="ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2023_16_43.png" alt="Праздничный образ героя" />
+            <div>
+              <span>Вариант</span>
+              <h2>Праздничный</h2>
+              <p>Яркий герой с подарками, свечами и теплым настроением.</p>
+            </div>
+          </button>
+          <button class="avatar-card" type="button" data-avatar="2">
+            <img src="ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2023_16_39.png" alt="Кинематографичный образ героя" />
+            <div>
+              <span>Вариант</span>
+              <h2>Кинематографичный</h2>
+              <p>Более взрослый стиль с красивым светом и глубиной кадра.</p>
+            </div>
+          </button>
+        </div>
+
+        <button class="primary-btn sticky-btn" type="button" data-continue-avatar>Продолжить с этим образом</button>
+        <p class="trust-line">Следующий шаг — оплата конкретного мультфильма.</p>
+      </section>
+
+      <section class="screen" id="payment" data-view="payment" aria-labelledby="payment-title">
+        <div class="compact-head">
+          <span>Оплата</span>
+          <h1 id="payment-title">Ваш мультфильм почти готов</h1>
+          <p>Вы выбрали героя. Теперь оплатите создание одного мультфильма.</p>
+        </div>
+
+        <article class="checkout-card panel">
+          <img data-checkout-image src="ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2023_16_34.png" alt="Выбранный герой" />
+          <div>
+            <span data-checkout-occasion>Для ребенка</span>
+            <h2 data-checkout-title>Лиза и волшебный лес</h2>
+            <p data-checkout-story>Волшебное приключение по выбранному образу.</p>
+          </div>
+        </article>
+
+        <article class="price-card">
+          <span>Цена за 1 мультфильм</span>
+          <strong data-price>1 490 ₽</strong>
+          <p>Без токенов и подписок. Оплата пройдет через CloudPayments.</p>
+        </article>
+
+        <div class="result-list panel">
+          <h2>Что вы получите</h2>
+          <p>Готовый короткий мультфильм</p>
+          <p>Персональный герой по выбранному образу</p>
+          <p>Ссылка для просмотра и скачивания</p>
+          <p>Срок создания: 5-20 минут</p>
+        </div>
+
+        <button class="primary-btn sticky-btn" type="button" data-open-payment>Оплатить и создать мультфильм</button>
+        <p class="trust-line">Если закрыть оплату, заказ останется в статусе «Ожидает оплаты».</p>
+      </section>
+
+      <section class="screen" id="works" data-view="works" aria-labelledby="works-title">
+        <div class="compact-head">
+          <span>Кабинет</span>
+          <h1 id="works-title">Мои работы</h1>
+          <p>Все заказы и действия по ним в одном месте.</p>
+        </div>
+
+        <div class="orders-list" data-orders-list></div>
+      </section>
+
+      <section class="screen" id="examples" data-view="examples" aria-labelledby="examples-title">
+        <div class="compact-head">
+          <span>Примеры</span>
+          <h1 id="examples-title">Готовые мультфильмы</h1>
+          <p>Выберите категорию и создайте похожий мультфильм.</p>
+        </div>
+
+        <div class="category-row" data-example-filters>
+          <button class="is-active" type="button" data-category="Все">Все</button>
+          <button type="button" data-category="Для ребенка">Для ребенка</button>
+          <button type="button" data-category="История любви">История любви</button>
+          <button type="button" data-category="День рождения">День рождения</button>
+          <button type="button" data-category="Свадьба">Свадьба</button>
+        </div>
+
+        <div class="example-list" data-example-list></div>
+      </section>
+
+      <section class="screen" id="gift" data-view="gift" aria-labelledby="gift-title">
+        <div class="compact-head">
+          <span>Подарок</span>
+          <h1 id="gift-title">Подарочный сертификат</h1>
+          <p>Получатель сам загрузит фото, выберет героя и получит мультфильм.</p>
+        </div>
+
+        <form class="create-form" data-gift-form>
+          <div class="certificate-preview panel">
+            <span>Сертификат</span>
+            <h2>Один персональный мультфильм</h2>
+            <p data-gift-summary>Для ребенка · 1 490 ₽</p>
+          </div>
+
+          <div class="chip-grid" data-choice-group="gift">
+            <button class="chip is-active" type="button" data-value="Для ребенка" data-price="1490">Для ребенка · 1 490 ₽</button>
+            <button class="chip" type="button" data-value="Для пары" data-price="1990">Для пары · 1 990 ₽</button>
+            <button class="chip" type="button" data-value="Праздник" data-price="1490">Праздник · 1 490 ₽</button>
+            <button class="chip" type="button" data-value="Свадьба" data-price="1990">Свадьба · 1 990 ₽</button>
+          </div>
+
+          <label class="field">
+            <span>Имя получателя</span>
+            <input name="recipient" type="text" value="Маша" />
+          </label>
+          <label class="field">
+            <span>Поздравление</span>
+            <textarea name="message">Пусть эта история станет маленьким семейным чудом.</textarea>
+          </label>
+
+          <button class="primary-btn" type="submit">Купить сертификат</button>
+        </form>
+
+        <article class="certificate-result panel" data-certificate-result hidden>
+          <span>Сертификат готов</span>
+          <h2 data-certificate-code>GIFT-1490-LIZA</h2>
+          <p data-certificate-link>animal-movies.local/gift/GIFT-1490-LIZA</p>
+          <div class="split-actions">
+            <button type="button" data-copy-certificate>Скопировать ссылку</button>
+            <button type="button" data-share-certificate>Отправить</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="screen" id="profile" data-view="profile" aria-labelledby="profile-title">
+        <article class="profile-head panel">
+          <div class="profile-avatar">Л</div>
+          <div>
+            <span>Профиль</span>
+            <h1 id="profile-title">Лиза Иванова</h1>
+            <p data-profile-login>+7 999 123-45-67</p>
+          </div>
+        </article>
+
+        <div class="profile-list">
+          <button type="button" data-profile-panel="payments">История оплат <span>→</span></button>
+          <button type="button" data-profile-panel="help">Помощь <span>→</span></button>
+          <button type="button" data-profile-panel="privacy">Конфиденциальность фото <span>→</span></button>
+          <button type="button" data-profile-panel="refund">Условия возврата <span>→</span></button>
+          <a href="index.html">Выйти <span>→</span></a>
+        </div>
+
+        <article class="trust-note panel" data-profile-content>
+          <h2>Ваши фото защищены</h2>
+          <p>Мы используем изображения только для создания вашего мультфильма и не показываем их другим пользователям.</p>
+        </article>
+      </section>
+
+      <section class="screen" id="player" data-view="player" aria-labelledby="player-title">
+        <button class="text-back" type="button" data-route="works">← Мои работы</button>
+        <article class="player-card">
+          <img data-player-image src="ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2020_18_22.png" alt="Постер мультфильма" />
+          <button type="button" data-play-button>▶</button>
+        </article>
+        <div class="compact-head">
+          <span>Просмотр</span>
+          <h1 id="player-title" data-player-title>Лиза и волшебный лес</h1>
+          <p data-player-text>Демо-просмотр готового мультфильма. В реальном продукте здесь будет video-player.</p>
+        </div>
+        <a class="primary-btn" data-download-link href="ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2020_18_22.png" download>Скачать файл</a>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Основное меню">
+        <button class="is-active" type="button" data-route="create"><span>+</span>Создать</button>
+        <button type="button" data-route="works"><span>□</span>Мои работы</button>
+        <button type="button" data-route="examples"><span>◇</span>Примеры</button>
+        <button type="button" data-route="gift"><span>☆</span>Подарок</button>
+        <button type="button" data-route="profile"><span>○</span>Профиль</button>
+      </nav>
+
+      <dialog class="payment-modal" data-payment-modal>
+        <form method="dialog" class="payment-box">
+          <span>CloudPayments</span>
+          <h2>Оплата мультфильма</h2>
+          <p>К оплате: <strong data-modal-price>1 490 ₽</strong></p>
+          <button class="primary-btn" value="pay" type="button" data-confirm-payment>Оплатить картой</button>
+          <button class="ghost-btn" value="cancel" type="button" data-cancel-payment>Закрыть</button>
+        </form>
+      </dialog>
+
+      <div class="toast" data-toast hidden></div>
+    </main>
+
+    <script>
+      const images = {
+        child: "ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2020_18_22.png",
+        love: "ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2020_24_33.png",
+        birthday: "ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2020_30_28.png",
+        avatarA: "ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2023_16_34.png",
+        avatarB: "ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2023_16_43.png",
+        avatarC: "ChatGPT%20Image%2027%20%D0%B0%D0%BF%D1%80.%202026%20%D0%B3.,%2023_16_39.png"
+      };
+
+      const avatars = [
+        { name: "Сказочный", src: images.avatarA, available: true },
+        { name: "Праздничный", src: images.avatarB, available: true },
+        { name: "Кинематографичный", src: images.avatarC, available: true }
+      ];
+
+      const examples = [
+        { title: "Лиза и волшебный лес", category: "Для ребенка", src: images.child, price: 1490 },
+        { title: "Ты — моя вселенная", category: "История любви", src: images.love, price: 1990 },
+        { title: "Праздник-сюрприз", category: "День рождения", src: images.birthday, price: 1490 },
+        { title: "Свадебная история", category: "Свадьба", src: images.love, price: 1990 }
+      ];
+
+      const state = {
+        loggedIn: false,
+        active: "login",
+        selectedAvatar: 0,
+        draft: {
+          heroName: "Лиза",
+          age: "7 лет",
+          occasion: "Для ребенка",
+          story: "Волшебное приключение",
+          price: 1490,
+          photoPreview: "",
+          imageDataUrl: ""
+        },
+        orders: [
+          {
+            id: "ready-1",
+            title: "Лиза и волшебный лес",
+            meta: "Для ребенка · 28 апреля",
+            status: "Готово",
+            image: images.child,
+            action: "watch"
+          },
+          {
+            id: "pay-1",
+            title: "Праздник-сюрприз",
+            meta: "День рождения · 1 490 ₽",
+            status: "Ожидает оплаты",
+            image: images.birthday,
+            action: "pay"
+          },
+          {
+            id: "draft-1",
+            title: "Новый мультфильм",
+            meta: "Черновик · фото не загружено",
+            status: "Черновик",
+            image: images.avatarA,
+            action: "continue"
+          }
+        ]
+      };
+
+      const screens = document.querySelectorAll(".screen");
+      const navButtons = document.querySelectorAll(".bottom-nav [data-route]");
+      const modal = document.querySelector("[data-payment-modal]");
+      const toast = document.querySelector("[data-toast]");
+
+      function route(view) {
+        if (!document.querySelector(`[data-view="${view}"]`)) view = "create";
+        state.active = view;
+        window.location.hash = view;
+        screens.forEach((screen) => {
+          screen.classList.toggle("is-active", screen.dataset.view === view);
+        });
+        const navView = ["avatars", "payment", "generating"].includes(view)
+          ? "create"
+          : view === "player"
+            ? "works"
+            : view;
+        navButtons.forEach((button) => {
+          button.classList.toggle("is-active", button.dataset.route === navView);
+        });
+        document.querySelector(".bottom-nav").hidden = view === "login" || view === "generating" || view === "player";
+        document.querySelector(".app-bar").hidden = view === "login" || view === "generating";
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.hidden = false;
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => {
+          toast.hidden = true;
+        }, 2200);
+      }
+
+      function formatPrice(value) {
+        return `${value.toLocaleString("ru-RU")} ₽`;
+      }
+
+      function fileToOptimizedDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error("Не удалось прочитать фото"));
+          reader.onload = () => {
+            const image = new Image();
+            image.onerror = () => reject(new Error("Не удалось обработать фото"));
+            image.onload = () => {
+              const maxSize = 768;
+              const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+              const width = Math.max(1, Math.round(image.width * scale));
+              const height = Math.max(1, Math.round(image.height * scale));
+              const canvas = document.createElement("canvas");
+              canvas.width = width;
+              canvas.height = height;
+              const context = canvas.getContext("2d");
+              context.drawImage(image, 0, 0, width, height);
+              resolve(canvas.toDataURL("image/jpeg", 0.8));
+            };
+            image.src = reader.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function updateAvatarCards() {
+        document.querySelectorAll("[data-avatar]").forEach((card) => {
+          const index = Number(card.dataset.avatar);
+          const avatar = avatars[index];
+          const available = Boolean(avatar?.src) && avatar.available !== false;
+          card.hidden = !available;
+          card.querySelector("b")?.remove();
+          if (!available) {
+            card.classList.remove("is-selected");
+            return;
+          }
+          const selected = index === state.selectedAvatar;
+          card.querySelector("img").src = avatar.src;
+          card.querySelector("h2").textContent = avatar.name;
+          card.classList.toggle("is-selected", selected);
+          card.querySelector("span").textContent = selected ? "Выбран" : "Вариант";
+          if (selected && !card.querySelector("b")) card.insertAdjacentHTML("beforeend", `<b aria-hidden="true">✓</b>`);
+          if (!selected) card.querySelector("b")?.remove();
+        });
+      }
+
+      async function requestGeneratedAvatars() {
+        const response = await fetch("/api/generate-avatars", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageDataUrl: state.draft.imageDataUrl,
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          console.error("Avatar generation failed:", data);
+          throw new Error(data.error || "Не удалось создать образы");
+        }
+        if (!Array.isArray(data.images) || !data.images.length) {
+          console.error("Avatar generation detail:", data.detail || data.errors);
+          throw new Error(data.detail || data.error || "Модель не вернула изображения");
+        }
+
+        if (data.errors?.length) {
+          console.warn("Some avatar generations failed:", data.errors);
+        }
+
+        return data.images.slice(0, 3);
+      }
+
+      function updateCheckout() {
+        const selected = avatars[state.selectedAvatar];
+        document.querySelector("[data-checkout-image]").src = selected.src;
+        document.querySelector("[data-checkout-occasion]").textContent = state.draft.occasion;
+        document.querySelector("[data-checkout-title]").textContent = `${state.draft.heroName || "Герой"} и волшебная история`;
+        document.querySelector("[data-checkout-story]").textContent = `${state.draft.story} по образу «${selected.name}».`;
+        document.querySelector("[data-price]").textContent = formatPrice(state.draft.price);
+        document.querySelector("[data-modal-price]").textContent = formatPrice(state.draft.price);
+      }
+
+      function renderOrders() {
+        const list = document.querySelector("[data-orders-list]");
+        list.innerHTML = state.orders
+          .map((order) => {
+            const statusClass = {
+              "Черновик": "status-draft",
+              "Образы готовы": "status-avatars",
+              "Ожидает оплаты": "status-pay",
+              "Создается": "status-create",
+              "Готово": "status-ready"
+            }[order.status];
+            const actions = {
+              continue: `<button type="button" data-route="create">Продолжить</button>`,
+              choose: `<button type="button" data-route="avatars">Выбрать героя</button>`,
+              pay: `<button type="button" data-pay-order="${order.id}">Оплатить</button>`,
+              process: `<button type="button" disabled>В процессе</button>`,
+              watch: `<button type="button" data-watch-order="${order.id}">Смотреть</button><a href="${order.image}" download>Скачать</a>`
+            }[order.action];
+
+            return `
+              <article class="order-item">
+                <img src="${order.image}" alt="${order.title}" />
+                <div>
+                  <span class="status ${statusClass}">${order.status}</span>
+                  <h2>${order.title}</h2>
+                  <p>${order.meta}</p>
+                  <div class="order-actions">${actions}</div>
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      function renderExamples(category = "Все") {
+        const list = document.querySelector("[data-example-list]");
+        list.innerHTML = examples
+          .filter((item) => category === "Все" || item.category === category)
+          .map((item) => `
+            <article class="example-card">
+              <img src="${item.src}" alt="${item.title}" />
+              <div>
+                <span>${item.category}</span>
+                <h2>${item.title}</h2>
+                <button type="button" data-example-create="${item.category}" data-example-price="${item.price}">Создать похожий</button>
+              </div>
+            </article>
+          `)
+          .join("");
+      }
+
+      function createDraftOrder(status = "Образы готовы", action = "choose") {
+        const existing = state.orders.find((order) => order.id === "current-draft");
+        const order = {
+          id: "current-draft",
+          title: `${state.draft.heroName || "Герой"} и волшебная история`,
+          meta: `${state.draft.occasion} · ${formatPrice(state.draft.price)}`,
+          status,
+          image: avatars[state.selectedAvatar].src,
+          action
+        };
+        if (existing) Object.assign(existing, order);
+        else state.orders.unshift(order);
+        renderOrders();
+      }
+
+      document.querySelector("[data-login-form]").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const login = new FormData(event.currentTarget).get("login");
+        document.querySelector("[data-profile-login]").textContent = login;
+        state.loggedIn = true;
+        route("create");
+      });
+
+      document.querySelectorAll("[data-route]").forEach((button) => {
+        button.addEventListener("click", () => route(button.dataset.route));
+      });
+
+      document.querySelector("[data-photo-input]").addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+          showToast("Загрузите изображение в JPG или PNG.");
+          return;
+        }
+        document.querySelector("[data-upload-title]").textContent = "Готовим фото...";
+        const preview = await fileToOptimizedDataUrl(file);
+        state.draft.photoPreview = preview;
+        state.draft.imageDataUrl = preview;
+        const card = document.querySelector("[data-upload-card]");
+        card.classList.add("has-photo");
+        document.querySelector("[data-photo-preview]").src = preview;
+        document.querySelector("[data-upload-title]").textContent = "Фото загружено";
+        document.querySelector("[data-upload-text]").textContent = "Можно заменить фото или сразу создать 3 образа.";
+      });
+
+      document.querySelectorAll("[data-choice-group]").forEach((group) => {
+        group.addEventListener("click", (event) => {
+          const button = event.target.closest("button");
+          if (!button) return;
+          group.querySelectorAll("button").forEach((item) => item.classList.remove("is-active"));
+          button.classList.add("is-active");
+
+          if (group.dataset.choiceGroup === "occasion") {
+            state.draft.occasion = button.dataset.value;
+            state.draft.price = Number(button.dataset.price);
+          }
+          if (group.dataset.choiceGroup === "story") {
+            state.draft.story = button.dataset.value;
+          }
+          if (group.dataset.choiceGroup === "gift") {
+            document.querySelector("[data-gift-summary]").textContent = `${button.dataset.value} · ${formatPrice(Number(button.dataset.price))}`;
+          }
+        });
+      });
+
+      document.querySelector("[data-create-form]").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
+        state.draft.heroName = form.get("heroName") || "Герой";
+        state.draft.age = form.get("age") || "";
+        if (!state.draft.imageDataUrl) {
+          showToast("Сначала загрузите фото героя.");
+          return;
+        }
+        route("generating");
+        const steps = ["Отправляем фото модели", "Подбираем мульт-стиль", "Готовим 3 образа героя"];
+        let index = 0;
+        const stepEl = document.querySelector("[data-loader-step]");
+        const interval = window.setInterval(() => {
+          index += 1;
+          stepEl.textContent = steps[index] || steps[2];
+        }, 1400);
+
+        try {
+          const generatedImages = await requestGeneratedAvatars();
+          avatars.forEach((avatar, avatarIndex) => {
+            const src = generatedImages[avatarIndex] || "";
+            avatar.src = src;
+            avatar.name = src ? `Мульт-образ ${avatarIndex + 1}` : "";
+            avatar.available = Boolean(src);
+          });
+          state.selectedAvatar = 0;
+          updateAvatarCards();
+          createDraftOrder("Образы готовы", "choose");
+          route("avatars");
+          if (generatedImages.length < 3) {
+            showToast(`Модель вернула ${generatedImages.length} из 3. Можно попробовать еще раз.`);
+          }
+        } catch (error) {
+          route("create");
+          showToast(error.message.includes("Failed to fetch")
+            ? "Откройте сайт через Netlify/локальный сервер, не через file://."
+            : error.message);
+        } finally {
+          window.clearInterval(interval);
+          stepEl.textContent = steps[0];
+        }
+      });
+
+      document.querySelector("[data-avatar-list]").addEventListener("click", (event) => {
+        const card = event.target.closest("[data-avatar]");
+        if (!card) return;
+        const avatar = avatars[Number(card.dataset.avatar)];
+        if (!avatar?.src || avatar.available === false) return;
+        state.selectedAvatar = Number(card.dataset.avatar);
+        document.querySelectorAll(".avatar-card").forEach((item, index) => {
+          const selected = index === state.selectedAvatar;
+          item.classList.toggle("is-selected", selected);
+          item.querySelector("span").textContent = selected ? "Выбран" : "Вариант";
+          if (selected && !item.querySelector("b")) item.insertAdjacentHTML("beforeend", `<b aria-hidden="true">✓</b>`);
+          if (!selected) item.querySelector("b")?.remove();
+        });
+      });
+
+      document.querySelector("[data-continue-avatar]").addEventListener("click", () => {
+        createDraftOrder("Ожидает оплаты", "pay");
+        updateCheckout();
+        route("payment");
+      });
+
+      document.querySelector("[data-open-payment]").addEventListener("click", () => {
+        updateCheckout();
+        if (modal.showModal) modal.showModal();
+        else modal.setAttribute("open", "");
+      });
+
+      document.querySelector("[data-cancel-payment]").addEventListener("click", () => {
+        if (modal.close) modal.close();
+        else modal.removeAttribute("open");
+        showToast("Оплата не завершена. Заказ сохранен.");
+      });
+
+      document.querySelector("[data-confirm-payment]").addEventListener("click", () => {
+        if (modal.close) modal.close();
+        else modal.removeAttribute("open");
+        createDraftOrder("Создается", "process");
+        route("works");
+        showToast("Оплата прошла. Мультфильм создается.");
+        window.setTimeout(() => {
+          createDraftOrder("Готово", "watch");
+          showToast("Мультфильм готов к просмотру.");
+        }, 2400);
+      });
+
+      document.querySelector("[data-orders-list]").addEventListener("click", (event) => {
+        const pay = event.target.closest("[data-pay-order]");
+        const watch = event.target.closest("[data-watch-order]");
+        const routeButton = event.target.closest("[data-route]");
+        if (pay) {
+          updateCheckout();
+          route("payment");
+        }
+        if (watch) {
+          const order = state.orders.find((item) => item.id === watch.dataset.watchOrder);
+          document.querySelector("[data-player-image]").src = order.image;
+          document.querySelector("[data-player-title]").textContent = order.title;
+          document.querySelector("[data-download-link]").href = order.image;
+          route("player");
+        }
+        if (routeButton) route(routeButton.dataset.route);
+      });
+
+      document.querySelector("[data-example-filters]").addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button) return;
+        document.querySelectorAll("[data-example-filters] button").forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        renderExamples(button.dataset.category);
+      });
+
+      document.querySelector("[data-example-list]").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-example-create]");
+        if (!button) return;
+        state.draft.occasion = button.dataset.exampleCreate;
+        state.draft.price = Number(button.dataset.examplePrice);
+        document.querySelectorAll('[data-choice-group="occasion"] button').forEach((item) => {
+          item.classList.toggle("is-active", item.dataset.value === state.draft.occasion);
+        });
+        route("create");
+        showToast("Формат подставлен в создание.");
+      });
+
+      document.querySelector("[data-gift-form]").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const selected = document.querySelector('[data-choice-group="gift"] .is-active');
+        const code = `GIFT-${selected.dataset.price}-${Date.now().toString().slice(-4)}`;
+        const result = document.querySelector("[data-certificate-result]");
+        document.querySelector("[data-certificate-code]").textContent = code;
+        document.querySelector("[data-certificate-link]").textContent = `animal-movies.local/gift/${code}`;
+        result.hidden = false;
+        result.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+
+      document.querySelector("[data-copy-certificate]").addEventListener("click", async () => {
+        const link = document.querySelector("[data-certificate-link]").textContent;
+        try {
+          await navigator.clipboard.writeText(link);
+          showToast("Ссылка скопирована.");
+        } catch {
+          showToast(link);
+        }
+      });
+
+      document.querySelector("[data-share-certificate]").addEventListener("click", async () => {
+        const link = document.querySelector("[data-certificate-link]").textContent;
+        if (navigator.share) {
+          await navigator.share({ title: "Подарочный сертификат", text: "Ваш персональный мультфильм", url: `https://${link}` });
+        } else {
+          window.location.href = `mailto:?subject=Подарочный сертификат&body=${encodeURIComponent(link)}`;
+        }
+      });
+
+      document.querySelectorAll("[data-profile-panel]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const content = {
+            payments: ["История оплат", "28 апреля · Лиза и волшебный лес · 1 490 ₽ · оплачено через CloudPayments."],
+            help: ["Помощь", "Напишите нам в чат поддержки. Обычно отвечаем в течение 10 минут."],
+            privacy: ["Конфиденциальность фото", "Фото используются только для создания заказа и не показываются другим пользователям."],
+            refund: ["Условия возврата", "Если результат не устроит по качеству, можно обратиться за возвратом в течение 14 дней."]
+          }[button.dataset.profilePanel];
+          document.querySelector("[data-profile-content]").innerHTML = `<h2>${content[0]}</h2><p>${content[1]}</p>`;
+        });
+      });
+
+      document.querySelector("[data-play-button]").addEventListener("click", () => {
+        showToast("В реальном кабинете здесь запускается видео.");
+      });
+
+      window.addEventListener("hashchange", () => {
+        const view = window.location.hash.replace("#", "");
+        if (view) route(view);
+      });
+
+      renderOrders();
+      renderExamples();
+      route(window.location.hash.replace("#", "") || "login");
+    </script>
+  </body>
+</html>
